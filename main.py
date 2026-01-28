@@ -5,7 +5,15 @@ from typing import List, Optional
 from contextlib import asynccontextmanager
 import datetime
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize the database connection
+    await database.connect()
+    yield
+    # Close the database connection
+    await database.disconnect()
+
+app = FastAPI(lifespan=lifespan)
 
 class ProductEvent(BaseModel):
     id: int
@@ -33,25 +41,6 @@ class UserEvent(BaseModel):
     meta: Optional[str]
     created: datetime.datetime
     last_modified: datetime.datetime
-    
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Initialize the database connection
-    await database.connect()
-    yield
-    # Close the database connection
-    await database.disconnect()
-
-
-@app.on_event("startup")
-async def startup():
-    await database.connect()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
 
 
 @app.get("/product-events/", response_model=List[ProductEvent])
@@ -63,12 +52,12 @@ async def read_product_events():
 async def read_lost_products():
     query = """
     WITH latest_events AS (
-    SELECT 
-    product_id,
-    evt_type,
-    evt_date,
-    ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY evt_date DESC) as rn
-    FROM product_events
+        SELECT 
+        product_id,
+        evt_type,
+        evt_date,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY evt_date DESC) as rn
+        FROM product_events
     )
     SELECT product_id
     FROM latest_events
@@ -84,30 +73,30 @@ async def read_lost_products():
 async def read_unreturned_products():
     query = """
     WITH latest_product_events AS (
-    SELECT 
-    product_id,
-    user_id,
-    evt_type,
-    ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY evt_date DESC) as rn
-    FROM product_events
+        SELECT 
+        product_id,
+        user_id,
+        evt_type,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY evt_date DESC) as rn
+        FROM product_events
     ),
     unreturned_borrows AS (
-    SELECT product_id, user_id
-    FROM latest_product_events
-    WHERE rn = 1 AND evt_type = 'borrow'
+        SELECT product_id, user_id
+        FROM latest_product_events
+        WHERE rn = 1 AND evt_type = 'borrow'
     ),
     latest_payment_methods AS (
-    SELECT 
+        SELECT 
         user_id,
         meta,
         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY evt_date DESC) as rn
-    FROM user_events
-    WHERE evt_type = 'add-payment-method'
+        FROM user_events
+        WHERE evt_type = 'add-payment-method'
     )
     SELECT 
-    ub.product_id,
-    ub.user_id,
-    lpm.meta,
+        ub.product_id,
+        ub.user_id,
+        lpm.meta,
     TO_DATE(SUBSTRING(lpm.meta FROM '"valid_until": "([^"]+)"'), 'MM/YY') as expiration_date
     FROM unreturned_borrows ub
     JOIN latest_payment_methods lpm ON ub.user_id = lpm.user_id
