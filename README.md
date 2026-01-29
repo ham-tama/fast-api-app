@@ -82,37 +82,6 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ## API Endpoints
 
-### Product Events
-
-**GET** `/product-events/`
-
-- **Description**: Retrieve all product events from the database
-- **Response**: List of ProductEvent objects
-- **Status Codes**:
-  - `200 OK` - Successfully retrieved events
-  - `500 Internal Server Error` - Database connection error
-
-Example response:
-
-```json
-[
-  {
-    "id": 1,
-    "evt_type": "borrow",
-    "user_id": "user123",
-    "product_id": "prod456",
-    "location_id": "loc789",
-    "location": "Warehouse A",
-    "evt_date": "2024-01-15T10:30:00",
-    "transaction_id": "txn001",
-    "platform": "web",
-    "meta": null,
-    "created": "2024-01-15T10:30:00",
-    "last_modified": "2024-01-15T10:30:00"
-  }
-]
-```
-
 ### Lost Products
 
 **GET** `/lost-products/`
@@ -154,6 +123,37 @@ Example response:
   },
   {
     "product_id": "2"
+  }
+]
+```
+
+### Product Events
+
+**GET** `/product-events/`
+
+- **Description**: Retrieve all product events from the database
+- **Response**: List of ProductEvent objects
+- **Status Codes**:
+  - `200 OK` - Successfully retrieved events
+  - `500 Internal Server Error` - Database connection error
+
+Example response:
+
+```json
+[
+  {
+    "id": 1,
+    "evt_type": "borrow",
+    "user_id": "user123",
+    "product_id": "prod456",
+    "location_id": "loc789",
+    "location": "Warehouse A",
+    "evt_date": "2024-01-15T10:30:00",
+    "transaction_id": "txn001",
+    "platform": "web",
+    "meta": null,
+    "created": "2024-01-15T10:30:00",
+    "last_modified": "2024-01-15T10:30:00"
   }
 ]
 ```
